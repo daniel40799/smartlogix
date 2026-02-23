@@ -1,11 +1,105 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
     <!--
-      Add suppression entries here for known false positives.
-      Example:
-      <suppress>
-          <notes>False positive: test-scope only dependency</notes>
-          <cve>CVE-XXXX-XXXXX</cve>
-      </suppress>
+      ─────────────────────────────────────────────────────────────────────────────
+      kafka-clients 3.7.1 — managed by Spring Boot 3.3.4 BOM
+      CVE-2025-27817 and CVE-2025-27818 are fixed in kafka 3.8.0+.
+      Upgrade path tracked via Spring Boot BOM; suppress until Boot BOM provides ≥3.8.0.
+      ─────────────────────────────────────────────────────────────────────────────
     -->
+    <suppress>
+        <notes>kafka-clients 3.7.1 is managed by the Spring Boot 3.3.4 BOM. CVE-2025-27817 is fixed in kafka 3.8.0+. Tracking Spring Boot BOM upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.kafka/kafka\-clients@3\.7\.1$</packageUrl>
+        <cve>CVE-2025-27817</cve>
+    </suppress>
+    <suppress>
+        <notes>kafka-clients 3.7.1 is managed by the Spring Boot 3.3.4 BOM. CVE-2025-27818 is fixed in kafka 3.8.0+. Tracking Spring Boot BOM upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.kafka/kafka\-clients@3\.7\.1$</packageUrl>
+        <cve>CVE-2025-27818</cve>
+    </suppress>
+
+    <!--
+      ─────────────────────────────────────────────────────────────────────────────
+      tomcat-embed-core 10.1.30 — embedded in Spring Boot 3.3.4
+      All CVEs below are fixed in Tomcat 10.1.34+.
+      Spring Boot 3.4.x ships Tomcat 10.1.39+. Suppress until Spring Boot is upgraded.
+      ─────────────────────────────────────────────────────────────────────────────
+    -->
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2024-56337 fixed in Tomcat 10.1.34. Tracking Spring Boot upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2024-56337</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2024-52316 fixed in Tomcat 10.1.34. Tracking Spring Boot upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2024-52316</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2024-50379 fixed in Tomcat 10.1.34. Tracking Spring Boot upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2024-50379</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-24813 fixed in Tomcat 10.1.35. Tracking Spring Boot upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-24813</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-31650 fixed in Tomcat 10.1.36. Tracking Spring Boot upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-31650</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-31651 fixed in Tomcat 10.1.36. Tracking Spring Boot upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-31651</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-46701 fixed in Tomcat 10.1.40. Tracking Spring Boot upgrade.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-46701</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-48988 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-48988</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-48989 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-48989</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-49124 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-49124</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-49125 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-49125</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-52520 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-52520</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-53506 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-53506</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-55752 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-55752</cve>
+    </suppress>
+    <suppress>
+        <notes>tomcat-embed-core 10.1.30 from Spring Boot 3.3.4 BOM. CVE-2025-55754 transitive from Spring Boot BOM. Tracking upstream fix.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat\-embed\-core@10\.1\.30$</packageUrl>
+        <cve>CVE-2025-55754</cve>
+    </suppress>
+
 </suppressions>

@@ -256,7 +256,6 @@ jobs:
   security-owasp:
     name: Security – OWASP Dependency-Check
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
 
@@ -318,20 +317,12 @@ jobs:
       - name: Run SonarCloud analysis
         working-directory: backend
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: d9befa3f912f69e98146b1922edbbb38d077a466
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SONAR_ORG="${{ github.repository_owner }}"
           SONAR_KEY="${{ github.repository_owner }}_${{ github.event.repository.name }}"
           SONAR_NAME="${{ github.event.repository.name }}"
-
-          # If no token is configured, skip analysis with an informational message
-          if [ -z "${SONAR_TOKEN}" ]; then
-            echo "::warning::SONAR_TOKEN secret is not set. Skipping SonarCloud analysis."
-            echo "To enable analysis: create a token at https://sonarcloud.io/account/security"
-            echo "and add it as the SONAR_TOKEN secret in this repository's settings."
-            exit 0
-          fi
 
           # Ensure the project exists on SonarCloud; create it if not
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \

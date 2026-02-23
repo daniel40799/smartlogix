@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   backend-test:
-    name: Backend Tests (Java 17 + TestContainers)
+    name: Backend Tests (Java 21 + TestContainers)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -20,14 +20,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: maven
 
-      - name: Run backend tests
+      - name: Run backend tests with coverage
         working-directory: backend
         run: mvn verify -B
 
@@ -37,6 +37,13 @@ jobs:
         with:
           name: backend-test-reports
           path: backend/target/surefire-reports/
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: backend/target/site/jacoco/
 
   backend-build:
     name: Backend Docker Build
@@ -60,6 +67,14 @@ jobs:
           tags: smartlogix-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/backend-image.tar
+
+      - name: Upload backend image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image
+          path: /tmp/backend-image.tar
+          retention-days: 1
 
   frontend-build:
     name: Frontend Build
@@ -86,6 +101,13 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 1
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -97,6 +119,14 @@ jobs:
           tags: smartlogix-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/frontend-image.tar
+
+      - name: Upload frontend image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image
+          path: /tmp/frontend-image.tar
+          retention-days: 1
 
   docker-compose-validate:
     name: Validate Docker Compose
@@ -110,3 +140,270 @@ jobs:
 
       - name: Validate docker-compose.yml
         run: SMARTLOGIX_JWT_SECRET=ci-validate-only docker compose config
+
+  # ── Security Gate: GitHub CodeQL ─────────────────────────────────────────────
+  codeql-analysis:
+    name: Security – CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java, javascript]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (for Java analysis)
+        if: matrix.language == 'java'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Build Java for CodeQL
+        if: matrix.language == 'java'
+        working-directory: backend
+        run: mvn clean compile -B -DskipTests
+
+      - name: Autobuild (JavaScript)
+        if: matrix.language == 'javascript'
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
+
+  # ── Security Gate: Trivy Container Scanning ──────────────────────────────────
+  security-trivy:
+    name: Security – Trivy Container Scan
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build]
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download backend image
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-image
+          path: /tmp/
+
+      - name: Load backend Docker image
+        run: docker load --input /tmp/backend-image.tar
+
+      - name: Scan backend image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: smartlogix-backend:${{ github.sha }}
+          format: sarif
+          output: trivy-backend-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy backend results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend-results.sarif
+          category: trivy-backend
+
+      - name: Download frontend image
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-image
+          path: /tmp/
+
+      - name: Load frontend Docker image
+        run: docker load --input /tmp/frontend-image.tar
+
+      - name: Scan frontend image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: smartlogix-frontend:${{ github.sha }}
+          format: sarif
+          output: trivy-frontend-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy frontend results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend-results.sarif
+          category: trivy-frontend
+
+  # ── Security Gate: OWASP Dependency-Check ────────────────────────────────────
+  security-owasp:
+    name: Security – OWASP Dependency-Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run OWASP Dependency-Check
+        working-directory: backend
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          mvn org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7 \
+            -DsuppressionFile=owasp-suppressions.xml \
+            -B
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-report
+          path: backend/target/dependency-check-report.html
+
+  # ── Quality Gate: SonarCloud ─────────────────────────────────────────────────
+  sonar-quality:
+    name: Quality – SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: backend-test
+    if: ${{ vars.SONAR_ORG != '' }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Download JaCoCo coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: backend/target/site/jacoco/
+
+      - name: Run SonarCloud analysis
+        working-directory: backend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORG: ${{ vars.SONAR_ORG }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        run: |
+          mvn sonar:sonar -Psonar \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.organization=${SONAR_ORG} \
+            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+            -Dsonar.token=${SONAR_TOKEN} \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+            -B
+
+  # ── Performance Gate: k6 Smoke Test ──────────────────────────────────────────
+  performance-gate:
+    name: Performance – k6 Smoke Test
+    runs-on: ubuntu-latest
+    needs: [backend-build, frontend-build]
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download backend image
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-image
+          path: /tmp/
+
+      - name: Load backend Docker image
+        run: |
+          docker load --input /tmp/backend-image.tar
+          docker tag smartlogix-backend:${{ github.sha }} smartlogix-backend:latest
+
+      - name: Start services with docker-compose
+        env:
+          SMARTLOGIX_JWT_SECRET: ci-performance-test-secret-key-xxxxxxxxxx
+        run: |
+          docker compose up -d postgres kafka zookeeper
+          sleep 20
+          docker compose up -d backend
+          echo "Waiting for backend to be healthy..."
+          timeout 120 bash -c 'until curl -sf http://localhost:8080/actuator/health; do sleep 5; done'
+
+      - name: Run k6 smoke test
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: k6/smoke-test.js
+        env:
+          BASE_URL: http://localhost:8080
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
+
+  # ── Performance Gate: Lighthouse CI ──────────────────────────────────────────
+  lighthouse-ci:
+    name: Performance – Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: frontend-build
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - name: Install @lhci/cli
+        run: npm install -g @lhci/cli
+
+      - name: Run Lighthouse CI
+        run: lhci autorun --config=.lighthouserc.json
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+

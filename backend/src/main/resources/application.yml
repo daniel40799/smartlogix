@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: smartlogix
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartlogix
+    username: smartlogix
+    password: smartlogix
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+  kafka:
+    bootstrap-servers: localhost:9092
+  cloud:
+    stream:
+      bindings:
+        orderEventConsumer-in-0:
+          destination: order-events
+          group: smartlogix-group
+        order-events-out-0:
+          destination: order-events
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+smartlogix:
+  jwt:
+    secret: SmartLogixSuperSecretKeyForJWTTokenGeneration2024XXXXXXXXXXX
+    expiration-ms: 86400000
+  integration:
+    ftp:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.smartlogix: INFO
+
+server:
+  port: 8080

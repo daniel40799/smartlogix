@@ -1,0 +1,83 @@
+package com.smartlogix.config;
+
+import com.smartlogix.batch.OrderItemProcessor;
+import com.smartlogix.domain.entity.Order;
+import com.smartlogix.domain.entity.Tenant;
+import com.smartlogix.domain.repository.OrderRepository;
+import com.smartlogix.domain.repository.TenantRepository;
+import com.smartlogix.dto.OrderCsvRecord;
+import com.smartlogix.security.TenantContext;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import java.util.UUID;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
+
+@Slf4j
+@Configuration
+@RequiredArgsConstructor
+public class BatchConfig {
+
+    private final JobRepository jobRepository;
+    private final PlatformTransactionManager transactionManager;
+    private final OrderRepository orderRepository;
+    private final TenantRepository tenantRepository;
+    private final OrderItemProcessor orderItemProcessor;
+
+    @Bean
+    public FlatFileItemReader<OrderCsvRecord> orderCsvItemReader() {
+        BeanWrapperFieldSetMapper<OrderCsvRecord> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+        fieldSetMapper.setTargetType(OrderCsvRecord.class);
+
+        return new FlatFileItemReaderBuilder<OrderCsvRecord>()
+                .name("orderCsvItemReader")
+                .linesToSkip(1)
+                .delimited()
+                .names("orderNumber", "description", "destinationAddress", "weight")
+                .fieldSetMapper(fieldSetMapper)
+                .build();
+    }
+
+    @Bean
+    public ItemWriter<Order> orderItemWriter() {
+        return items -> {
+            UUID tenantId = TenantContext.get();
+            if (tenantId != null) {
+                Tenant tenant = tenantRepository.findByIdAndActiveTrue(tenantId).orElse(null);
+                items.forEach(order -> {
+                    if (tenant != null) {
+                        order.setTenant(tenant);
+                    }
+                });
+            }
+            orderRepository.saveAll(items);
+        };
+    }
+
+    @Bean
+    public Step orderImportStep() {
+        return new StepBuilder("orderImportStep", jobRepository)
+                .<OrderCsvRecord, Order>chunk(10, transactionManager)
+                .reader(orderCsvItemReader())
+                .processor(orderItemProcessor)
+                .writer(orderItemWriter())
+                .build();
+    }
+
+    @Bean
+    public Job orderImportJob() {
+        return new JobBuilder("orderImportJob", jobRepository)
+                .start(orderImportStep())
+                .build();
+    }
+}

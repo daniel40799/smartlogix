@@ -314,6 +314,10 @@ jobs:
           name: jacoco-coverage-report
           path: backend/target/site/jacoco/
 
+      - name: Compile backend
+        working-directory: backend
+        run: mvn compile -DskipTests -B
+
       - name: Run SonarCloud analysis
         working-directory: backend
         env:

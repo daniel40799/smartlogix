@@ -1,0 +1,31 @@
+orderNumber,description,destinationAddress,weight
+ORD-2024-001,Electronic Components - Batch A,123 Industrial Park, Hamburg, Germany,45.50
+ORD-2024-002,Pharmaceutical Supplies - Urgent,St. Mary's Hospital, London, UK,12.30
+ORD-2024-003,Automotive Parts - Engine Components,BMW Plant, Munich, Germany,320.75
+ORD-2024-004,Textile Shipment - Raw Cotton,Textile Hub, Istanbul, Turkey,1850.00
+ORD-2024-005,Consumer Electronics - Smartphones,Tech Distribution Center, Amsterdam, Netherlands,95.20
+ORD-2024-006,Fresh Produce - Vegetables,Central Market, Paris, France,680.00
+ORD-2024-007,Chemical Reagents - Lab Grade,Research Institute, Zurich, Switzerland,38.90
+ORD-2024-008,Steel Pipes - Construction Grade,Construction Depot, Warsaw, Poland,4200.00
+ORD-2024-009,Medical Devices - Diagnostic Equipment,Hospital Supply Chain, Vienna, Austria,67.40
+ORD-2024-010,Luxury Goods - Watches,Boutique Warehouse, Geneva, Switzerland,8.50
+ORD-2024-011,Food Products - Frozen Goods,Supermarket DC, Stockholm, Sweden,950.60
+ORD-2024-012,Industrial Machinery - Conveyor Parts,Factory Floor, Rotterdam, Netherlands,1250.00
+ORD-2024-013,Books and Educational Materials,University Library, Oxford, UK,145.30
+ORD-2024-014,Cosmetics - Beauty Products,Retail Warehouse, Milan, Italy,72.80
+ORD-2024-015,Building Materials - Ceramic Tiles,Construction Site, Madrid, Spain,3800.00
+ORD-2024-016,Agricultural Equipment - Irrigation,Farm Supply, Bucharest, Romania,560.00
+ORD-2024-017,Software Licenses - Enterprise Package,IT Department, Brussels, Belgium,0.50
+ORD-2024-018,Clothing - Winter Collection,Fashion Retailer, Prague, Czech Republic,230.00
+ORD-2024-019,Marine Equipment - Navigation Systems,Port Authority, Athens, Greece,115.70
+ORD-2024-020,Office Furniture - Executive Sets,Corporate HQ, Dublin, Ireland,890.00
+ORD-2024-021,Renewable Energy - Solar Panels,Energy Farm, Lisbon, Portugal,2400.00
+ORD-2024-022,Telecommunications - Network Hardware,Data Center, Helsinki, Finland,175.50
+ORD-2024-023,Food Processing - Packaging Lines,Food Factory, Budapest, Hungary,4100.00
+ORD-2024-024,Toys - Holiday Collection,Toy Distributor, Copenhagen, Denmark,310.40
+ORD-2024-025,Mining Equipment - Drill Bits,Mining Site, Oslo, Norway,780.00
+ORD-2024-026,Beverages - Premium Wines,Wine Cellar, Bordeaux, France,425.60
+ORD-2024-027,Aviation Parts - Landing Gear,Maintenance Hangar, Frankfurt, Germany,1800.00
+ORD-2024-028,Art Supplies - Gallery Grade,Art Gallery, Florence, Italy,28.90
+ORD-2024-029,Pet Supplies - Veterinary Grade,Animal Hospital, Barcelona, Spain,88.30
+ORD-2024-030,Electronics - IoT Sensors,Smart Factory, Eindhoven, Netherlands,52.10

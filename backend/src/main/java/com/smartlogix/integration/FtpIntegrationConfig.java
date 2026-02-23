@@ -2,6 +2,7 @@ package com.smartlogix.integration;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.net.ftp.FTPFile;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,13 +23,31 @@ import java.io.File;
 @ConditionalOnProperty(name = "smartlogix.integration.ftp.enabled", havingValue = "true")
 public class FtpIntegrationConfig {
 
+    @Value("${smartlogix.integration.ftp.host}")
+    private String ftpHost;
+
+    @Value("${smartlogix.integration.ftp.port}")
+    private int ftpPort;
+
+    @Value("${smartlogix.integration.ftp.username}")
+    private String ftpUsername;
+
+    @Value("${smartlogix.integration.ftp.password}")
+    private String ftpPassword;
+
+    @Value("${smartlogix.integration.ftp.remote-directory}")
+    private String remoteDirectory;
+
+    @Value("${smartlogix.integration.ftp.local-directory}")
+    private String localDirectory;
+
     @Bean
     public DefaultFtpSessionFactory ftpSessionFactory() {
         DefaultFtpSessionFactory factory = new DefaultFtpSessionFactory();
-        factory.setHost("localhost");
-        factory.setPort(21);
-        factory.setUsername("anonymous");
-        factory.setPassword("");
+        factory.setHost(ftpHost);
+        factory.setPort(ftpPort);
+        factory.setUsername(ftpUsername);
+        factory.setPassword(ftpPassword);
         return factory;
     }
 
@@ -41,7 +60,7 @@ public class FtpIntegrationConfig {
     public FtpInboundFileSynchronizer ftpInboundFileSynchronizer(SessionFactory<FTPFile> sessionFactory) {
         FtpInboundFileSynchronizer synchronizer = new FtpInboundFileSynchronizer(sessionFactory);
         synchronizer.setDeleteRemoteFiles(false);
-        synchronizer.setRemoteDirectory("/tmp/ftp-shipments");
+        synchronizer.setRemoteDirectory(remoteDirectory);
         return synchronizer;
     }
 
@@ -50,7 +69,7 @@ public class FtpIntegrationConfig {
             FtpInboundFileSynchronizer synchronizer) {
         FtpInboundFileSynchronizingMessageSource source =
                 new FtpInboundFileSynchronizingMessageSource(synchronizer);
-        source.setLocalDirectory(new File("/tmp/local-ftp"));
+        source.setLocalDirectory(new File(localDirectory));
         source.setAutoCreateLocalDirectory(true);
         return source;
     }

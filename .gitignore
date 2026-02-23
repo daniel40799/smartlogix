@@ -1,0 +1,30 @@
+# Maven build output
+backend/target/
+backend/.mvn/
+!backend/.mvn/wrapper/
+
+# Node / npm
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!.env.example

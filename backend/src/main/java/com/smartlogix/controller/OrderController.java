@@ -12,16 +12,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.batch.item.file.FlatFileItemReader;
-import com.smartlogix.dto.OrderCsvRecord;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,7 +35,6 @@ public class OrderController {
     private final OrderService orderService;
     private final JobLauncher jobLauncher;
     private final Job orderImportJob;
-    private final FlatFileItemReader<OrderCsvRecord> orderCsvItemReader;
 
     @GetMapping
     @Operation(summary = "List orders for current tenant")
@@ -69,8 +67,12 @@ public class OrderController {
     @Operation(summary = "Import orders from CSV file")
     public ResponseEntity<Map<String, String>> importOrders(@RequestParam("file") MultipartFile file) {
         try {
-            orderCsvItemReader.setResource(new InputStreamResource(file.getInputStream()));
+            File tempFile = Files.createTempFile("order-import-", ".csv").toFile();
+            file.transferTo(tempFile);
+            tempFile.deleteOnExit();
+
             jobLauncher.run(orderImportJob, new JobParametersBuilder()
+                    .addString("filePath", tempFile.getAbsolutePath())
                     .addLong("timestamp", System.currentTimeMillis())
                     .toJobParameters());
             return ResponseEntity.ok(Map.of("message", "Import job started successfully"));

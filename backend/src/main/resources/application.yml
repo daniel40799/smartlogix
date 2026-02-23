@@ -40,6 +40,12 @@ smartlogix:
   integration:
     ftp:
       enabled: false
+      host: ${SMARTLOGIX_FTP_HOST:localhost}
+      port: ${SMARTLOGIX_FTP_PORT:21}
+      username: ${SMARTLOGIX_FTP_USERNAME:anonymous}
+      password: ${SMARTLOGIX_FTP_PASSWORD:}
+      remote-directory: ${SMARTLOGIX_FTP_REMOTE_DIR:/tmp/ftp-shipments}
+      local-directory: ${SMARTLOGIX_FTP_LOCAL_DIR:/tmp/local-ftp}
 
 management:
   endpoints:

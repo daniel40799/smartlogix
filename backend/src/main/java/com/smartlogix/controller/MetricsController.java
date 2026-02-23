@@ -3,7 +3,6 @@ package com.smartlogix.controller;
 import com.smartlogix.domain.enums.OrderStatus;
 import com.smartlogix.domain.repository.OrderRepository;
 import com.smartlogix.security.TenantContext;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +24,6 @@ import java.util.UUID;
 public class MetricsController {
 
     private final OrderRepository orderRepository;
-    private final MeterRegistry meterRegistry;
 
     @GetMapping("/summary")
     @Operation(summary = "Get order count summary by status for current tenant")
@@ -37,13 +35,6 @@ public class MetricsController {
         for (OrderStatus status : OrderStatus.values()) {
             long count = orderRepository.countByTenantIdAndStatus(tenantId, status);
             statusCounts.put(status, count);
-            // Register a gauge for current count (safe to call repeatedly)
-            meterRegistry.gauge("orders.count",
-                    java.util.List.of(
-                            io.micrometer.core.instrument.Tag.of("tenant", tenantTag),
-                            io.micrometer.core.instrument.Tag.of("status", status.name())
-                    ),
-                    count);
         }
 
         return ResponseEntity.ok(Map.of(

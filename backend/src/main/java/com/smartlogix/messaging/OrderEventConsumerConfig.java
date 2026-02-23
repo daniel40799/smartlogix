@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-public class OrderEventConsumer {
+public class OrderEventConsumerConfig {
 
     private final SimpMessagingTemplate messagingTemplate;
 

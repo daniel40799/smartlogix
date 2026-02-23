@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:15:///smartlogix_test
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+smartlogix:
+  jwt:
+    secret: TestSecretKeyForSmartLogixJWTTokenGeneration2024XXXXXX
+    expiration-ms: 3600000
+  integration:
+    ftp:
+      enabled: false
+
+logging:
+  level:
+    com.smartlogix: DEBUG
+    org.springframework.batch: WARN

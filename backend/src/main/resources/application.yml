@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: smartlogix
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartlogix
+    username: smartlogix
+    password: smartlogix
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
+  kafka:
+    bootstrap-servers: localhost:9092
+  cloud:
+    stream:
+      bindings:
+        orderEventConsumer-in-0:
+          destination: order-events
+          group: smartlogix-group
+        order-events-out-0:
+          destination: order-events
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+smartlogix:
+  jwt:
+    secret: ${SMARTLOGIX_JWT_SECRET:SmartLogixSuperSecretKeyForJWTTokenGeneration2024XXXXXXXXXXX}
+    expiration-ms: ${SMARTLOGIX_JWT_EXPIRATION_MS:86400000}
+  integration:
+    ftp:
+      enabled: false
+      host: ${SMARTLOGIX_FTP_HOST:localhost}
+      port: ${SMARTLOGIX_FTP_PORT:21}
+      username: ${SMARTLOGIX_FTP_USERNAME:anonymous}
+      password: ${SMARTLOGIX_FTP_PASSWORD:}
+      remote-directory: ${SMARTLOGIX_FTP_REMOTE_DIR:/tmp/ftp-shipments}
+      local-directory: ${SMARTLOGIX_FTP_LOCAL_DIR:/tmp/local-ftp}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.smartlogix: INFO
+
+server:
+  port: 8080

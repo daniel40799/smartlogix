@@ -31,19 +31,23 @@ public class MetricsController {
     @Operation(summary = "Get order count summary by status for current tenant")
     public ResponseEntity<Map<String, Object>> getSummary() {
         UUID tenantId = TenantContext.get();
+        String tenantTag = tenantId != null ? tenantId.toString() : "unknown";
         Map<OrderStatus, Long> statusCounts = new EnumMap<>(OrderStatus.class);
 
         for (OrderStatus status : OrderStatus.values()) {
             long count = orderRepository.countByTenantIdAndStatus(tenantId, status);
             statusCounts.put(status, count);
-            meterRegistry.counter("orders.by.status",
-                    "tenant", tenantId != null ? tenantId.toString() : "unknown",
-                    "status", status.name()
-            ).increment(count);
+            // Register a gauge for current count (safe to call repeatedly)
+            meterRegistry.gauge("orders.count",
+                    java.util.List.of(
+                            io.micrometer.core.instrument.Tag.of("tenant", tenantTag),
+                            io.micrometer.core.instrument.Tag.of("status", status.name())
+                    ),
+                    count);
         }
 
         return ResponseEntity.ok(Map.of(
-                "tenantId", tenantId != null ? tenantId.toString() : "unknown",
+                "tenantId", tenantTag,
                 "ordersByStatus", statusCounts
         ));
     }

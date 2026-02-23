@@ -52,14 +52,12 @@ public class BatchConfig {
     public ItemWriter<Order> orderItemWriter() {
         return items -> {
             UUID tenantId = TenantContext.get();
-            if (tenantId != null) {
-                Tenant tenant = tenantRepository.findByIdAndActiveTrue(tenantId).orElse(null);
-                items.forEach(order -> {
-                    if (tenant != null) {
-                        order.setTenant(tenant);
-                    }
-                });
+            if (tenantId == null) {
+                throw new IllegalStateException("TenantContext is not set — cannot write batch orders without a tenant");
             }
+            Tenant tenant = tenantRepository.findByIdAndActiveTrue(tenantId)
+                    .orElseThrow(() -> new IllegalStateException("Active tenant not found for id: " + tenantId));
+            items.forEach(order -> order.setTenant(tenant));
             orderRepository.saveAll(items);
         };
     }

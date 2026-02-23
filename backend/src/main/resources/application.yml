@@ -35,8 +35,8 @@ spring:
 
 smartlogix:
   jwt:
-    secret: SmartLogixSuperSecretKeyForJWTTokenGeneration2024XXXXXXXXXXX
-    expiration-ms: 86400000
+    secret: ${SMARTLOGIX_JWT_SECRET:SmartLogixSuperSecretKeyForJWTTokenGeneration2024XXXXXXXXXXX}
+    expiration-ms: ${SMARTLOGIX_JWT_EXPIRATION_MS:86400000}
   integration:
     ftp:
       enabled: false

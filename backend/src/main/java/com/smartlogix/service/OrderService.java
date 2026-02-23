@@ -82,11 +82,12 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order", orderId));
 
         validateTransition(order.getStatus(), newStatus);
+        OrderStatus previousStatus = order.getStatus();
 
         order.setStatus(newStatus);
         Order saved = orderRepository.save(order);
 
-        log.info("Order status transitioned: id={}, from={}, to={}", orderId, order.getStatus(), newStatus);
+        log.info("Order status transitioned: id={}, from={}, to={}", orderId, previousStatus, newStatus);
 
         orderEventProducer.publishOrderEvent(saved, "OrderStatusChanged");
 

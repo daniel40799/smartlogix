@@ -70,6 +70,7 @@ export default function (data) {
   };
 
   const orderPayload = JSON.stringify({
+    orderNumber: `PERF-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     description: `Load Test Order ${Date.now()}`,
     destinationAddress: '123 Performance Test Ave, Test City, TC 00000',
     weight: Math.random() * 100 + 1,

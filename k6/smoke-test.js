@@ -31,7 +31,7 @@ function registerAndLogin() {
     JSON.stringify({
       email: email,
       password: password,
-      tenantName: `perf-tenant-${timestamp}`,
+      tenantSlug: `perf-tenant-${timestamp}`,
     }),
     { headers: { 'Content-Type': 'application/json' } }
   );

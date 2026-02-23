@@ -321,11 +321,33 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          SONAR_ORG="${{ github.repository_owner }}"
+          SONAR_KEY="${{ github.repository_owner }}_${{ github.event.repository.name }}"
+          SONAR_NAME="${{ github.event.repository.name }}"
+
+          # If no token is configured, skip analysis with an informational message
+          if [ -z "${SONAR_TOKEN}" ]; then
+            echo "::warning::SONAR_TOKEN secret is not set. Skipping SonarCloud analysis."
+            echo "To enable analysis: create a token at https://sonarcloud.io/account/security"
+            echo "and add it as the SONAR_TOKEN secret in this repository's settings."
+            exit 0
+          fi
+
+          # Ensure the project exists on SonarCloud; create it if not
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "https://sonarcloud.io/api/projects/create" \
+            -H "Authorization: Bearer ${SONAR_TOKEN}" \
+            --data-urlencode "name=${SONAR_NAME}" \
+            --data-urlencode "project=${SONAR_KEY}" \
+            --data-urlencode "organization=${SONAR_ORG}" \
+            --data-urlencode "visibility=public")
+          echo "SonarCloud project create returned HTTP ${HTTP_STATUS} (400 = already exists, 200 = created)"
+
           mvn sonar:sonar \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.organization=${{ github.repository_owner }} \
-            -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }} \
-            -Dsonar.projectName="${{ github.event.repository.name }}" \
+            -Dsonar.organization=${SONAR_ORG} \
+            -Dsonar.projectKey=${SONAR_KEY} \
+            -Dsonar.projectName="${SONAR_NAME}" \
             -Dsonar.token=${SONAR_TOKEN} \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
             -Dsonar.java.binaries=target/classes \

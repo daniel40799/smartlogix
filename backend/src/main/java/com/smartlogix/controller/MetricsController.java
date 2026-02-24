@@ -25,6 +25,18 @@ public class MetricsController {
 
     private final OrderRepository orderRepository;
 
+    /**
+     * Returns a summary of order counts grouped by status for the currently authenticated tenant.
+     * <p>
+     * Iterates over all {@link OrderStatus} values and queries the repository for the count of
+     * orders in each state, scoped to the tenant derived from {@link TenantContext}. The result
+     * is suitable for rendering dashboard widgets (e.g., a status breakdown chart) in the React
+     * frontend.
+     * </p>
+     *
+     * @return {@link ResponseEntity} containing a map with keys {@code tenantId} (the resolved
+     *         tenant UUID as a string) and {@code ordersByStatus} (a map of status → count)
+     */
     @GetMapping("/summary")
     @Operation(summary = "Get order count summary by status for current tenant")
     public ResponseEntity<Map<String, Object>> getSummary() {

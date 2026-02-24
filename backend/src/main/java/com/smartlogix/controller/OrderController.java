@@ -36,24 +36,58 @@ public class OrderController {
     private final JobLauncher jobLauncher;
     private final Job orderImportJob;
 
+    /**
+     * Returns a paginated list of orders for the currently authenticated tenant.
+     *
+     * @param pageable Spring Data {@link Pageable} containing page number, size, and sort
+     * @return {@link ResponseEntity} wrapping a {@link Page} of {@link OrderResponseDTO} objects
+     */
     @GetMapping
     @Operation(summary = "List orders for current tenant")
     public ResponseEntity<Page<OrderResponseDTO>> getOrders(Pageable pageable) {
         return ResponseEntity.ok(orderService.getOrders(pageable));
     }
 
+    /**
+     * Creates a new order for the currently authenticated tenant.
+     * <p>
+     * The request body is validated via Jakarta Bean Validation before being forwarded to the
+     * service layer. The order is automatically linked to the tenant extracted from the JWT.
+     * </p>
+     *
+     * @param requestDTO the validated order creation payload
+     * @return {@link ResponseEntity} containing the persisted {@link OrderResponseDTO}
+     */
     @PostMapping
     @Operation(summary = "Create a new order")
     public ResponseEntity<OrderResponseDTO> createOrder(@Valid @RequestBody OrderRequestDTO requestDTO) {
         return ResponseEntity.ok(orderService.createOrder(requestDTO));
     }
 
+    /**
+     * Retrieves a single order by its UUID, scoped to the current tenant.
+     *
+     * @param id the UUID of the order to fetch
+     * @return {@link ResponseEntity} containing the matching {@link OrderResponseDTO}
+     */
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID")
     public ResponseEntity<OrderResponseDTO> getOrderById(@PathVariable UUID id) {
         return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
+    /**
+     * Transitions the status of an order following the enforced state-machine rules.
+     * <p>
+     * Expects a JSON body of the form {@code {"newStatus": "APPROVED"}}. The service layer
+     * validates that the transition is legal; if not, a {@code 400 Bad Request} is returned.
+     * On success, a Kafka event is published and connected WebSocket clients are notified.
+     * </p>
+     *
+     * @param id   the UUID of the order to update
+     * @param body request body map containing the {@code newStatus} key
+     * @return {@link ResponseEntity} containing the updated {@link OrderResponseDTO}
+     */
     @PatchMapping("/{id}/status")
     @Operation(summary = "Transition order status")
     public ResponseEntity<OrderResponseDTO> transitionStatus(
@@ -63,6 +97,20 @@ public class OrderController {
         return ResponseEntity.ok(orderService.transitionStatus(id, newStatus));
     }
 
+    /**
+     * Accepts a CSV file upload and triggers a Spring Batch job to import orders in bulk.
+     * <p>
+     * The uploaded file is written to a temporary location on disk and the path is passed to
+     * the {@code orderImportJob} as a job parameter. The job reads records in chunks of 10,
+     * validates each row via {@link com.smartlogix.batch.OrderItemProcessor}, and persists
+     * valid orders to the database. The endpoint returns immediately — import processing
+     * continues asynchronously in the batch job thread.
+     * </p>
+     *
+     * @param file the multipart CSV file containing order records
+     * @return {@link ResponseEntity} with a confirmation message if the job was launched,
+     *         or a {@code 500} response if launching failed
+     */
     @PostMapping("/import")
     @Operation(summary = "Import orders from CSV file")
     public ResponseEntity<Map<String, String>> importOrders(@RequestParam("file") MultipartFile file) {

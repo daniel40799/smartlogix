@@ -25,6 +25,31 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
 
+    /**
+     * Intercepts every HTTP request exactly once to perform JWT-based authentication.
+     * <p>
+     * Processing steps:
+     * <ol>
+     *   <li>Read the {@code Authorization} header; skip filter chain if the header is absent
+     *       or does not start with {@code Bearer }.</li>
+     *   <li>Extract the email and tenant UUID from the JWT.</li>
+     *   <li>Store the tenant UUID in {@link TenantContext} (thread-local) so that the service
+     *       layer can enforce row-level multi-tenant isolation.</li>
+     *   <li>If no authentication is present in the security context, load the
+     *       {@link UserDetails}, validate the token, and set a
+     *       {@link UsernamePasswordAuthenticationToken} on the context.</li>
+     *   <li>On any JWT exception, log a warning and clear the tenant context.</li>
+     *   <li>Continue the filter chain; always clear {@link TenantContext} in the
+     *       {@code finally} block to prevent thread-local leaks in thread-pool environments.</li>
+     * </ol>
+     * </p>
+     *
+     * @param request     the incoming HTTP request
+     * @param response    the outgoing HTTP response
+     * @param filterChain the remaining filter chain to invoke after authentication
+     * @throws ServletException if a servlet error occurs further down the chain
+     * @throws IOException      if an I/O error occurs further down the chain
+     */
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,

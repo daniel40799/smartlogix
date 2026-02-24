@@ -37,6 +37,19 @@ public class BatchConfig {
     private final TenantRepository tenantRepository;
     private final OrderItemProcessor orderItemProcessor;
 
+    /**
+     * Creates a step-scoped {@link FlatFileItemReader} that reads order records from a CSV file.
+     * <p>
+     * The reader skips the header row, uses comma-delimited parsing, and maps each data row to
+     * an {@link OrderCsvRecord} via a {@link BeanWrapperFieldSetMapper}. The CSV columns are
+     * expected in the order: {@code orderNumber, description, destinationAddress, weight}.
+     * The file path is injected from the Spring Batch job parameter {@code filePath} at
+     * step-execution time.
+     * </p>
+     *
+     * @param filePath the absolute path to the CSV file, provided as a job parameter
+     * @return a configured {@link FlatFileItemReader} for {@link OrderCsvRecord} items
+     */
     @Bean
     @StepScope
     public FlatFileItemReader<OrderCsvRecord> orderCsvItemReader(
@@ -54,6 +67,18 @@ public class BatchConfig {
                 .build();
     }
 
+    /**
+     * Creates an {@link ItemWriter} that persists a chunk of processed {@link Order} entities
+     * to the database.
+     * <p>
+     * Before saving, the writer resolves the active {@link com.smartlogix.domain.entity.Tenant}
+     * from {@link TenantContext} and associates it with every order in the chunk. This ensures
+     * that all batch-imported orders are correctly scoped to the tenant that triggered the import.
+     * </p>
+     *
+     * @return an {@link ItemWriter} that bulk-saves order entities via {@link OrderRepository}
+     * @throws IllegalStateException if {@link TenantContext} is not set or the tenant is not active
+     */
     @Bean
     public ItemWriter<Order> orderItemWriter() {
         return items -> {
@@ -70,6 +95,21 @@ public class BatchConfig {
         };
     }
 
+    /**
+     * Defines the single {@link Step} used in the order import job.
+     * <p>
+     * The step processes records in chunks of 10, combining:
+     * <ul>
+     *   <li>{@link #orderCsvItemReader(String)} — reads CSV rows from the uploaded file</li>
+     *   <li>{@link OrderItemProcessor} — validates and maps rows to {@link Order} entities</li>
+     *   <li>{@link #orderItemWriter()} — bulk-saves the mapped entities to PostgreSQL</li>
+     * </ul>
+     * Each chunk is processed within a single transaction, providing restartability: if a chunk
+     * fails mid-way the job can be restarted from the last successfully committed chunk.
+     * </p>
+     *
+     * @return the configured import {@link Step}
+     */
     @Bean
     public Step orderImportStep() {
         return new StepBuilder("orderImportStep", jobRepository)
@@ -80,6 +120,17 @@ public class BatchConfig {
                 .build();
     }
 
+    /**
+     * Defines the Spring Batch {@link Job} for bulk order imports.
+     * <p>
+     * The job consists of a single step ({@link #orderImportStep()}) and is triggered by
+     * {@code POST /api/orders/import}. Job parameters (e.g. {@code filePath} and a
+     * {@code timestamp} to ensure uniqueness) are passed by
+     * {@link com.smartlogix.controller.OrderController#importOrders}.
+     * </p>
+     *
+     * @return the configured {@link Job} bean
+     */
     @Bean
     public Job orderImportJob() {
         return new JobBuilder("orderImportJob", jobRepository)

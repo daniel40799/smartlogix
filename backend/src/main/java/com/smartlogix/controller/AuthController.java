@@ -20,12 +20,34 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Authenticates a user and returns a signed JWT token.
+     * <p>
+     * The JWT contains {@code tenantId} and {@code role} claims that are used by downstream
+     * filters and services for multi-tenant access control.
+     * </p>
+     *
+     * @param request the login credentials ({@code email} and {@code password})
+     * @return {@link ResponseEntity} containing an {@link AuthResponse} with the JWT token
+     *         and user metadata
+     */
     @PostMapping("/login")
     @Operation(summary = "Login and receive JWT token")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    /**
+     * Registers a new user, optionally creating the associated tenant if it does not exist.
+     * <p>
+     * Expects a JSON body with the keys {@code email}, {@code password}, and {@code tenantSlug}.
+     * On success the user is immediately logged in and a JWT is returned.
+     * </p>
+     *
+     * @param body map containing {@code email}, {@code password}, and {@code tenantSlug}
+     * @return {@link ResponseEntity} containing an {@link AuthResponse} with the JWT token
+     *         and newly created user metadata
+     */
     @PostMapping("/register")
     @Operation(summary = "Register a new user")
     public ResponseEntity<AuthResponse> register(@RequestBody Map<String, String> body) {

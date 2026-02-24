@@ -4,6 +4,10 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchOrders } from '../store/slices/ordersSlice'
 import type { OrderStatus } from '../types'
 
+/**
+ * Display order of status columns in the stats grid.
+ * Mirrors the canonical order of the {@link OrderStatus} state machine.
+ */
 const STATUS_ORDER: OrderStatus[] = [
   'PENDING',
   'APPROVED',
@@ -13,16 +17,33 @@ const STATUS_ORDER: OrderStatus[] = [
   'CANCELLED',
 ]
 
+/**
+ * Dashboard page component — the default authenticated landing page.
+ *
+ * Renders:
+ * - A greeting and a quick link to create a new order.
+ * - A stats grid showing the count of orders in each status for the current tenant.
+ * - A "Recent Orders" table showing the 8 most recently updated orders.
+ * - A "Live Notifications" panel populated in real time by WebSocket events.
+ *
+ * Orders are fetched on mount via {@link fetchOrders} with a page size of 50 to
+ * provide a reasonable overview without exhaustive pagination.
+ */
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { items, loading } = useAppSelector((state) => state.orders)
   const notifications = useAppSelector((state) => state.notifications.items)
   const email = useAppSelector((state) => state.auth.email)
 
+  // Fetch the first page of orders when the dashboard mounts.
   useEffect(() => {
     dispatch(fetchOrders({ page: 0, size: 50 }))
   }, [dispatch])
 
+  /**
+   * Derive per-status counts by filtering the loaded order list.
+   * Computed on each render from the Redux slice — no additional API call needed.
+   */
   const countByStatus = STATUS_ORDER.reduce(
     (acc, s) => {
       acc[s] = items.filter((o) => o.status === s).length

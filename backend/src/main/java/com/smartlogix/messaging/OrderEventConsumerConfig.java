@@ -15,6 +15,25 @@ public class OrderEventConsumerConfig {
 
     private final SimpMessagingTemplate messagingTemplate;
 
+    /**
+     * Declares the Spring Cloud Stream consumer function that processes inbound
+     * {@link OrderEvent} messages from the Kafka {@code order-events} topic.
+     * <p>
+     * For each received event, the consumer:
+     * <ol>
+     *   <li>Logs the event type, order ID, and tenant ID for observability.</li>
+     *   <li>Derives the tenant-specific WebSocket destination:
+     *       {@code /topic/orders/{tenantId}}.</li>
+     *   <li>Sends the event payload to that destination via
+     *       {@link SimpMessagingTemplate}, delivering a real-time push notification to all
+     *       React clients subscribed to that tenant's channel.</li>
+     * </ol>
+     * The bean name {@code orderEventConsumer} matches the Spring Cloud Stream function
+     * binding convention ({@code spring.cloud.stream.function.definition=orderEventConsumer}).
+     * </p>
+     *
+     * @return a {@link java.util.function.Consumer} that handles incoming {@link OrderEvent} messages
+     */
     @Bean
     public Consumer<OrderEvent> orderEventConsumer() {
         return event -> {

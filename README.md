@@ -237,3 +237,75 @@ smartlogix/
 - CSRF protection is intentionally disabled — the API uses stateless JWT Bearer tokens (not cookies), making CSRF inapplicable
 - Passwords are stored as BCrypt hashes
 - Multi-tenancy is enforced at the service layer via `TenantContext`
+
+---
+
+## What Was Built — Engineering Highlights
+
+This section maps the implemented features to the engineering practices described in the role requirements for **Senior Full Stack Engineer** (8×8) and **Senior Backend Engineer** (Kuehne+Nagel).
+
+### Full-Stack Engineering (React + Spring Boot)
+
+| Requirement | Implementation |
+|---|---|
+| Modern, responsive React UI | React 18 + Redux Toolkit SPA with TypeScript, covering Dashboard, Orders, Map, and Auth pages |
+| Redux state management | `@reduxjs/toolkit` slices manage authentication state and order data across the app |
+| Live updates without page refresh | `useWebSocket` hook uses `@stomp/stompjs` + SockJS to subscribe to `/topic/orders/{tenantId}`; status changes appear instantly |
+| RESTful JSON API | Spring Boot 3 controllers expose clean REST endpoints with proper HTTP semantics (GET / POST / PATCH) |
+| Input validation | Jakarta Bean Validation (`@NotBlank`, `@NotNull`, etc.) on DTOs; `GlobalExceptionHandler` returns field-level errors |
+| OpenAPI documentation | SpringDoc OpenAPI 3 generates Swagger UI at `/swagger-ui.html`; every endpoint is annotated with `@Operation` and `@Tag` |
+
+### Security & JWT / OAuth Alignment
+
+| Requirement | Implementation |
+|---|---|
+| JWT authentication | `JwtUtil` generates HMAC-SHA256 signed tokens containing `email`, `tenantId`, and `role` claims |
+| Stateless auth filter | `JwtAuthFilter` (extends `OncePerRequestFilter`) extracts and validates the `Bearer` token on every request |
+| Multi-tenant isolation | `TenantContext` (ThreadLocal) carries the tenant UUID from the filter to the service/repository layer — Company A can never see Company B's data |
+| Role-based access control | `@PreAuthorize("isAuthenticated()")` on controllers; roles embedded in JWT and loaded by `CustomUserDetailsService` |
+| Secure password storage | BCrypt encoding via Spring Security `PasswordEncoder` |
+
+### Java Backend Engineering (Spring Ecosystem)
+
+| Requirement | Implementation |
+|---|---|
+| Spring Boot / Spring Core | Spring Boot 3.3 application with full auto-configuration, profiles, and property binding |
+| Spring Data JPA | `OrderRepository`, `TenantRepository`, `UserRepository` with derived query methods and `@Query` annotations; B-Tree indexes on `tenant_id` and `order_status` |
+| Spring Data Envers | `@Audited` on the `Order` entity — every change is snapshotted in `orders_aud` for a full audit trail / compliance |
+| Spring Batch | `BatchConfig` defines a chunk-oriented (size 10) import job; `OrderItemProcessor` validates and maps CSV rows; transactional restartability is built in |
+| Spring Integration (FTP) | `FtpIntegrationConfig` polls an FTP server every 30 seconds, downloads shipment manifest files to a local staging directory, and feeds them into the event pipeline |
+| Spring Cloud Stream + Kafka | `OrderEventProducer` publishes `OrderCreated` / `OrderStatusChanged` events via `StreamBridge`; `OrderEventConsumerConfig` consumes those events and fans out via WebSocket |
+| Spring WebSocket (STOMP) | `WebSocketConfig` registers the STOMP endpoint at `/ws` and the `/topic` message broker prefix |
+| MapStruct | `OrderMapper` provides zero-reflection, compile-time verified entity ↔ DTO conversion |
+| Lombok | `@Data`, `@Builder`, `@RequiredArgsConstructor`, `@Slf4j` used throughout to eliminate boilerplate |
+| Jackson | JSON serialisation / deserialisation for all REST payloads and Kafka event messages |
+| Jakarta Validation | Constraint annotations on DTOs; violations surfaced as structured `400` responses |
+
+### Clean Code & Software Craftsmanship
+
+| Requirement | Implementation |
+|---|---|
+| Clean Code principles | Single-responsibility services, thin controllers, no business logic in entities; each class has a focused purpose |
+| Comprehensive Javadoc | Every public and private method across all service, controller, security, messaging, batch, and integration classes is documented with `@param`, `@return`, and `@throws` tags |
+| Order state machine | `OrderService.validateTransition()` encodes all legal transitions in a `switch` expression; invalid transitions throw descriptive `IllegalStateException` messages |
+| Global exception handling | `GlobalExceptionHandler` (`@RestControllerAdvice`) maps domain exceptions to appropriate HTTP status codes with structured error bodies |
+| Structured logging | Logback + `logstash-logback-encoder` produce JSON log lines; every key operation is logged with contextual fields (orderId, tenantId, email) |
+| Observability | Spring Actuator health/metrics + Micrometer + Prometheus scrape endpoint at `/actuator/prometheus` |
+
+### Messaging & Data
+
+| Requirement | Implementation |
+|---|---|
+| Apache Kafka | Spring Cloud Stream bindings; `order-events-out-0` output channel for domain events |
+| RabbitMQ compatibility | Spring Cloud Stream abstraction means the binder can be swapped to RabbitMQ without changing application code |
+| PostgreSQL | Primary data store; schema managed by Liquibase/Flyway-compatible DDL scripts; B-Tree composite indexes for fast tenant-scoped queries |
+
+### DevOps & CI/CD
+
+| Requirement | Implementation |
+|---|---|
+| Docker & Docker Compose | Multi-stage Dockerfiles for both backend and frontend; `docker-compose.yml` orchestrates PostgreSQL, Zookeeper, Kafka, backend, and frontend |
+| GitHub Actions CI | `.github/workflows/ci.yml` builds, tests (TestContainers), and packages both backend and frontend on every push |
+| Kubernetes manifests | `k8s/` directory contains Deployment and Service manifests for production cluster deployment |
+| TestContainers | `SmartLogixIntegrationTest` spins up real PostgreSQL and Kafka containers for integration tests |
+| k6 load tests | `k6/` directory contains load-test scripts for order creation and status transition endpoints |

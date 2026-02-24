@@ -25,6 +25,19 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Authenticates a user by verifying the supplied credentials against the stored BCrypt hash.
+     * <p>
+     * On success, a signed JWT is generated containing the user's email (as the subject),
+     * {@code tenantId}, and {@code role} claims. The token can subsequently be supplied as a
+     * {@code Bearer} token in the {@code Authorization} header of every protected API call.
+     * </p>
+     *
+     * @param request the login payload containing {@code email} and {@code password}
+     * @return an {@link AuthResponse} holding the JWT token together with user metadata
+     * @throws org.springframework.security.authentication.BadCredentialsException if the email
+     *         is not found or the password does not match
+     */
     @Transactional(readOnly = true)
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
@@ -50,6 +63,22 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Registers a new user within the specified tenant, creating the tenant if it does not exist.
+     * <p>
+     * The method first looks up (or creates) a {@link com.smartlogix.domain.entity.Tenant} by
+     * {@code tenantSlug}. It then checks that no existing user with the same email already
+     * belongs to that tenant. The user's password is BCrypt-encoded before persistence. On
+     * success a JWT token is generated and returned, so the caller is immediately authenticated.
+     * </p>
+     *
+     * @param email       the new user's email address (used as the login identifier)
+     * @param password    the plain-text password (will be BCrypt-encoded before storage)
+     * @param tenantSlug  the URL-friendly identifier for the tenant; a new tenant is created
+     *                    automatically if one does not already exist with this slug
+     * @return an {@link AuthResponse} containing the JWT token and user metadata
+     * @throws IllegalStateException if a user with the supplied email already exists for the tenant
+     */
     @Transactional
     public AuthResponse register(String email, String password, String tenantSlug) {
         Tenant tenant = tenantRepository.findBySlug(tenantSlug)

@@ -5,6 +5,11 @@ import { fetchOrders } from '../store/slices/ordersSlice'
 import { transitionOrderStatus } from '../api/ordersApi'
 import type { OrderStatus } from '../types'
 
+/**
+ * Maps each non-terminal {@link OrderStatus} to the set of statuses it can legally
+ * transition to, following the backend state-machine rules.
+ * Terminal states (DELIVERED, CANCELLED) are omitted — no actions are available for them.
+ */
 const NEXT_STATUSES: Partial<Record<OrderStatus, OrderStatus[]>> = {
   PENDING: ['APPROVED', 'CANCELLED'],
   APPROVED: ['IN_TRANSIT', 'CANCELLED'],
@@ -12,17 +17,39 @@ const NEXT_STATUSES: Partial<Record<OrderStatus, OrderStatus[]>> = {
   SHIPPED: ['DELIVERED'],
 }
 
+/**
+ * Orders list page component.
+ *
+ * Displays a paginated table of all orders for the current tenant. Each row shows order
+ * details and action buttons for every legal next status transition. Clicking a transition
+ * button calls the backend PATCH endpoint and then re-fetches the current page to reflect
+ * the updated status.
+ *
+ * Real-time WebSocket events (handled by {@link useWebSocket}) also update order statuses
+ * in the Redux store, so the table may update without user interaction.
+ */
 const OrdersPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { items, loading, totalPages, currentPage } = useAppSelector(
     (state) => state.orders
   )
+  /**
+   * UUID of the order whose transition action is currently in flight, or {@code null}
+   * when no action is pending. Used to disable action buttons on the active row.
+   */
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
+  // Load the first page of orders on mount.
   useEffect(() => {
     dispatch(fetchOrders({ page: 0, size: 20 }))
   }, [dispatch])
 
+  /**
+   * Calls the backend status-transition endpoint and refreshes the current page.
+   *
+   * @param orderId   - UUID of the order to transition.
+   * @param newStatus - The target status.
+   */
   const handleTransition = async (
     orderId: string,
     newStatus: OrderStatus
@@ -38,6 +65,11 @@ const OrdersPage: React.FC = () => {
     }
   }
 
+  /**
+   * Navigates to the specified page number.
+   *
+   * @param page - Zero-based page index to load.
+   */
   const handlePageChange = (page: number) => {
     dispatch(fetchOrders({ page, size: 20 }))
   }

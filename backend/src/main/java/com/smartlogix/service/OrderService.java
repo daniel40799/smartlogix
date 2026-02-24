@@ -38,6 +38,20 @@ public class OrderService {
     private final OrderEventProducer orderEventProducer;
     private final SimpMessagingTemplate messagingTemplate;
 
+    /**
+     * Creates a new order for the currently authenticated tenant.
+     * <p>
+     * Resolves the active {@link com.smartlogix.domain.entity.Tenant} from the current
+     * {@link TenantContext}, maps the incoming DTO to an {@link Order} entity, sets the
+     * initial status to {@link com.smartlogix.domain.enums.OrderStatus#PENDING}, optionally
+     * links the authenticated user as the creator, persists the entity, and publishes an
+     * {@code OrderCreated} event to Kafka via {@link OrderEventProducer}.
+     * </p>
+     *
+     * @param requestDTO the validated order creation payload containing order details
+     * @return an {@link OrderResponseDTO} representing the newly persisted order
+     * @throws ResourceNotFoundException if the tenant resolved from the context is not found or inactive
+     */
     public OrderResponseDTO createOrder(OrderRequestDTO requestDTO) {
         UUID tenantId = TenantContext.get();
         Tenant tenant = tenantRepository.findByIdAndActiveTrue(tenantId)
@@ -61,6 +75,16 @@ public class OrderService {
         return orderMapper.toResponseDTO(saved);
     }
 
+    /**
+     * Returns a paginated list of orders belonging to the currently authenticated tenant.
+     * <p>
+     * The tenant identifier is read from {@link TenantContext} so that Company A's data is
+     * never mixed with Company B's data (row-level multi-tenancy).
+     * </p>
+     *
+     * @param pageable Spring Data pagination and sorting parameters
+     * @return a {@link Page} of {@link OrderResponseDTO} objects scoped to the current tenant
+     */
     @Transactional(readOnly = true)
     public Page<OrderResponseDTO> getOrders(Pageable pageable) {
         UUID tenantId = TenantContext.get();
@@ -68,6 +92,17 @@ public class OrderService {
                 .map(orderMapper::toResponseDTO);
     }
 
+    /**
+     * Retrieves a single order by its UUID, scoped to the current tenant.
+     * <p>
+     * Ensures that cross-tenant access is prevented by filtering on both {@code tenant_id}
+     * and the provided {@code id}.
+     * </p>
+     *
+     * @param id the UUID of the order to retrieve
+     * @return an {@link OrderResponseDTO} for the matching order
+     * @throws ResourceNotFoundException if no order with the given ID exists for the current tenant
+     */
     @Transactional(readOnly = true)
     public OrderResponseDTO getOrderById(UUID id) {
         UUID tenantId = TenantContext.get();
@@ -76,6 +111,29 @@ public class OrderService {
         return orderMapper.toResponseDTO(order);
     }
 
+    /**
+     * Transitions an order to a new status following the enforced state-machine rules.
+     * <p>
+     * Valid transitions are:
+     * <pre>
+     *   PENDING    → APPROVED | CANCELLED
+     *   APPROVED   → IN_TRANSIT | CANCELLED
+     *   IN_TRANSIT → SHIPPED | CANCELLED
+     *   SHIPPED    → DELIVERED
+     *   DELIVERED  → (terminal — no further transitions)
+     *   CANCELLED  → (terminal — no further transitions)
+     * </pre>
+     * After a successful transition the updated order is saved, an {@code OrderStatusChanged}
+     * Kafka event is published, and a WebSocket notification is broadcast to
+     * {@code /topic/orders/{tenantId}} so connected React clients receive the update in real time.
+     * </p>
+     *
+     * @param orderId   the UUID of the order to transition
+     * @param newStatus the desired target status
+     * @return an {@link OrderResponseDTO} reflecting the updated status
+     * @throws ResourceNotFoundException if the order does not exist for the current tenant
+     * @throws IllegalStateException     if the requested status transition is not allowed
+     */
     public OrderResponseDTO transitionStatus(UUID orderId, OrderStatus newStatus) {
         UUID tenantId = TenantContext.get();
         Order order = orderRepository.findByTenantIdAndId(tenantId, orderId)
@@ -99,6 +157,18 @@ public class OrderService {
         return orderMapper.toResponseDTO(saved);
     }
 
+    /**
+     * Validates that the requested status transition is permitted by the order state machine.
+     * <p>
+     * Terminal states ({@code DELIVERED} and {@code CANCELLED}) do not allow any further
+     * transitions. All other invalid combinations (e.g. {@code PENDING → SHIPPED}) also
+     * result in an exception.
+     * </p>
+     *
+     * @param current the order's present {@link OrderStatus}
+     * @param next    the desired target {@link OrderStatus}
+     * @throws IllegalStateException if the transition from {@code current} to {@code next} is not allowed
+     */
     private void validateTransition(OrderStatus current, OrderStatus next) {
         boolean valid = switch (current) {
             case PENDING -> next == OrderStatus.APPROVED || next == OrderStatus.CANCELLED;

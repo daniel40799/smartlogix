@@ -3,14 +3,29 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { logout } from '../store/slices/authSlice'
 
+/**
+ * Top navigation bar rendered on every authenticated page.
+ *
+ * Displays:
+ * - Brand link back to the Dashboard.
+ * - Navigation links: Dashboard, Orders, Map View.
+ * - Live notification badge showing the count of unread WebSocket events.
+ * - The authenticated user's email address.
+ * - A Logout button that clears auth state and redirects to {@code /login}.
+ *
+ * Returns {@code null} when the user is not authenticated so the bar is hidden on
+ * the Login and Register pages.
+ */
 const Navbar: React.FC = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { isAuthenticated, email } = useAppSelector((state) => state.auth)
+  /** Total count of unread live notifications; shown as a badge in the nav bar. */
   const notificationCount = useAppSelector(
     (state) => state.notifications.items.length
   )
 
+  /** Dispatches the logout action and navigates to the login page. */
   const handleLogout = () => {
     dispatch(logout())
     navigate('/login')

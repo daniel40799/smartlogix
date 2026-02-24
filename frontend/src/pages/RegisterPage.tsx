@@ -3,21 +3,42 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAppDispatch } from '../store/hooks'
 import { registerThunk } from '../store/slices/authSlice'
 
+/**
+ * Registration page component.
+ *
+ * Allows a new company (tenant) to sign up by providing a unique slug, an admin email,
+ * and a password. On success the {@link registerThunk} is dispatched, the returned JWT
+ * is persisted, and the user is redirected to the Dashboard as the first admin user of
+ * the newly created tenant.
+ */
 const RegisterPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  /** Controlled form state for all registration fields. */
   const [form, setForm] = useState({
     email: '',
     password: '',
     tenantSlug: '',
   })
+  /** Error message shown when registration fails. Empty string means no error. */
   const [error, setError] = useState('')
+  /** {@code true} while the registration API call is in flight. */
   const [loading, setLoading] = useState(false)
 
+  /**
+   * Generic change handler that updates the matching field in {@link form} state.
+   *
+   * @param e - Input change event.
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  /**
+   * Handles form submission — dispatches the registration thunk and navigates on success.
+   *
+   * @param e - The form submit event.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')

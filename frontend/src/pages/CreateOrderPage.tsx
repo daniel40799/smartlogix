@@ -3,9 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { useAppDispatch } from '../store/hooks'
 import { createOrderThunk } from '../store/slices/ordersSlice'
 
+/**
+ * Create Order page component.
+ *
+ * Renders a form for creating a new logistics order. Required fields are
+ * {@code orderNumber}, {@code destinationAddress}, and {@code weight}; all other
+ * fields ({@code description}, {@code latitude}, {@code longitude}, {@code trackingNotes})
+ * are optional. On success the order is added to the Redux store and the user is
+ * redirected to the Orders list.
+ */
 const CreateOrderPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  /** Controlled form state for all order fields. */
   const [form, setForm] = useState({
     orderNumber: '',
     description: '',
@@ -15,15 +25,28 @@ const CreateOrderPage: React.FC = () => {
     longitude: '',
     trackingNotes: '',
   })
+  /** Error message shown below the form when creation fails. */
   const [error, setError] = useState('')
+  /** {@code true} while the create API call is in flight; disables the submit button. */
   const [loading, setLoading] = useState(false)
 
+  /**
+   * Generic change handler that updates the matching field in {@link form} state.
+   *
+   * @param e - Input or textarea change event.
+   */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
+  /**
+   * Handles form submission — builds the typed payload, dispatches {@link createOrderThunk},
+   * and navigates to {@code /orders} on success.
+   *
+   * @param e - The form submit event.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')

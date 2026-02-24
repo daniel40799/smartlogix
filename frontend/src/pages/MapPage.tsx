@@ -4,7 +4,9 @@ import L from 'leaflet'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchOrders } from '../store/slices/ordersSlice'
 
-// Fix leaflet default marker icons
+// Fix leaflet default marker icons broken by Webpack/Vite asset bundling:
+// the bundler renames the image files so leaflet's built-in URL resolution fails.
+// Deleting the private resolver and merging explicit CDN URLs restores the icons.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -16,14 +18,27 @@ L.Icon.Default.mergeOptions({
     'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
+/**
+ * Map page component — visualises orders with GPS coordinates on an interactive world map.
+ *
+ * Uses React Leaflet with an OpenStreetMap tile layer. Each order that has both
+ * {@code latitude} and {@code longitude} fields set is rendered as a map marker.
+ * Clicking a marker opens a popup showing the order number, status badge, and destination
+ * address.
+ *
+ * Up to 100 orders are fetched on mount. Orders without coordinates are excluded from
+ * the map but still counted in the header subtitle.
+ */
 const MapPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { items, loading } = useAppSelector((state) => state.orders)
 
+  // Fetch a large page of orders so the map displays as many pins as possible.
   useEffect(() => {
     dispatch(fetchOrders({ page: 0, size: 100 }))
   }, [dispatch])
 
+  /** Subset of orders that have valid latitude and longitude values. */
   const ordersWithCoords = items.filter(
     (o) => o.latitude != null && o.longitude != null
   )
